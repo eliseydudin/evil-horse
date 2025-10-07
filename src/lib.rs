@@ -1,4 +1,5 @@
 use nih_plug::prelude::*;
+use nih_plug_webview::WebViewEditor;
 use std::sync::Arc;
 
 struct EvilHorseVst {
@@ -85,19 +86,28 @@ impl Plugin for EvilHorseVst {
     }
 
     fn deactivate(&mut self) {}
-}
 
-impl ClapPlugin for EvilHorseVst {
-    const CLAP_ID: &'static str = "space.uoxide.evil-horse-vst";
-    const CLAP_DESCRIPTION: Option<&'static str> = Some("horse");
-    const CLAP_MANUAL_URL: Option<&'static str> = Some(Self::URL);
-    const CLAP_SUPPORT_URL: Option<&'static str> = None;
-    const CLAP_FEATURES: &'static [ClapFeature] = &[
-        ClapFeature::AudioEffect,
-        ClapFeature::Stereo,
-        ClapFeature::Mono,
-        ClapFeature::Utility,
-    ];
+    fn editor(&mut self, _async_executor: AsyncExecutor<Self>) -> Option<Box<dyn Editor>> {
+        let params = self.params.clone();
+        let editor = WebViewEditor::new(
+            nih_plug_webview::HTMLSource::String(include_str!("horse.html")),
+            (256, 256),
+        )
+        .with_background_color((200, 0, 0, 255))
+        .with_event_loop(move |ctx, setter, _window| {
+            while let Ok(event) = ctx.next_event() {
+                if let Some(value) = event.get("data").map(|a| a.as_f64()).flatten() {
+                    setter.begin_set_parameter(&params.horse);
+                    setter.set_parameter_normalized(&params.horse, value as f32);
+                    setter.end_set_parameter(&params.horse);
+                } else {
+                    ctx.send_json(event);
+                }
+            }
+        });
+
+        Some(Box::new(editor))
+    }
 }
 
 impl Vst3Plugin for EvilHorseVst {
@@ -106,5 +116,4 @@ impl Vst3Plugin for EvilHorseVst {
         &[Vst3SubCategory::Fx, Vst3SubCategory::Tools];
 }
 
-nih_export_clap!(EvilHorseVst);
 nih_export_vst3!(EvilHorseVst);
