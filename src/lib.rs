@@ -1,4 +1,5 @@
 use nih_plug::prelude::*;
+#[cfg(feature = "enable-ui")]
 use nih_plug_webview::WebViewEditor;
 use std::sync::Arc;
 
@@ -87,6 +88,7 @@ impl Plugin for EvilHorseVst {
 
     fn deactivate(&mut self) {}
 
+    #[cfg(feature = "enable-ui")]
     fn editor(&mut self, _async_executor: AsyncExecutor<Self>) -> Option<Box<dyn Editor>> {
         let params = self.params.clone();
         let editor = WebViewEditor::new(
